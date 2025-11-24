@@ -1,0 +1,283 @@
+public class Producto {
+    private int id;
+    private String nombre;
+    private double precio;
+
+    public Producto(int id, String nombre, double precio) {
+        this.id = id;
+        this.nombre = nombre;
+        this.precio = precio;
+    }
+
+    // Getters y Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public double getPrecio() { return precio; }
+    public void setPrecio(double precio) { this.precio = precio; }
+
+    // toString para mostrar la información legible en el JList
+    @Override
+    public String toString() {
+        return "ID: " + id + " | " + nombre + " | $" + precio;
+    }
+}
+
+
+import java.util.ArrayList;
+
+public class InventarioProductos {
+    private ArrayList<Producto> productos;
+
+    public InventarioProductos() {
+        this.productos = new ArrayList<>();
+        // Predefinir 5 productos como pide la instrucción
+        agregarProducto(101, "Teclado", 25.50);
+        agregarProducto(102, "Mouse", 15.00);
+        agregarProducto(103, "Monitor", 150.00);
+        agregarProducto(104, "Laptop", 800.00);
+        agregarProducto(105, "Auriculares", 40.00);
+    }
+
+    public ArrayList<Producto> getProductos() {
+        return productos;
+    }
+
+    // 1. Agregar asegurando unicidad de ID
+    public boolean agregarProducto(int id, String nombre, double precio) {
+        for (Producto p : productos) {
+            if (p.getId() == id) {
+                return false; // El ID ya existe
+            }
+        }
+        productos.add(new Producto(id, nombre, precio));
+        return true; // Agregado con éxito
+    }
+
+    // 2. Ordenamiento por Precio Descendente (Algoritmo Burbuja)
+    public void ordenarPorPrecioDescendente() {
+        int n = productos.size();
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - i - 1; j++) {
+                if (productos.get(j).getPrecio() < productos.get(j + 1).getPrecio()) {
+                    // Intercambiar
+                    Producto temp = productos.get(j);
+                    productos.set(j, productos.get(j + 1));
+                    productos.set(j + 1, temp);
+                }
+            }
+        }
+    }
+
+    // 3. Ordenamiento por ID Ascendente (Necesario para Búsqueda Binaria)
+    public void ordenarPorId() {
+        int n = productos.size();
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - i - 1; j++) {
+                if (productos.get(j).getId() > productos.get(j + 1).getId()) {
+                    Producto temp = productos.get(j);
+                    productos.set(j, productos.get(j + 1));
+                    productos.set(j + 1, temp);
+                }
+            }
+        }
+    }
+
+    // 4. Búsqueda Binaria por ID
+    // Nota: La lista debe estar ordenada por ID antes de usar esto.
+    public Producto busquedaBinariaId(int idBuscado) {
+        ordenarPorId(); // Aseguramos el orden primero
+        int inicio = 0;
+        int fin = productos.size() - 1;
+
+        while (inicio <= fin) {
+            int medio = inicio + (fin - inicio) / 2;
+            Producto pMedio = productos.get(medio);
+
+            if (pMedio.getId() == idBuscado) {
+                return pMedio; // Encontrado
+            }
+            if (pMedio.getId() < idBuscado) {
+                inicio = medio + 1;
+            } else {
+                fin = medio - 1;
+            }
+        }
+        return null; // No encontrado
+    }
+
+    // 5. Búsqueda Lineal por Nombre
+    public Producto busquedaLinealNombre(String nombreBuscado) {
+        for (Producto p : productos) {
+            if (p.getNombre().equalsIgnoreCase(nombreBuscado)) {
+                return p;
+            }
+        }
+        return null;
+    }
+}
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+
+public class Ventana extends JFrame {
+    private InventarioProductos inventario;
+    private DefaultListModel<String> listModel;
+    private JList<String> jListProductos;
+
+    // Componentes Tab 1
+    private JSpinner spinnerId;
+    private JTextField txtNombre;
+    private JTextField txtPrecio;
+
+    public Ventana() {
+        inventario = new InventarioProductos();
+        configurarVentana();
+        iniciarComponentes();
+        actualizarLista(); // Cargar los 5 productos iniciales
+    }
+
+    private void configurarVentana() {
+        setTitle("Sistema de Inventario - Progreso 2");
+        setSize(600, 450);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+    }
+
+    private void iniciarComponentes() {
+        JTabbedPane tabbedPane = new JTabbedPane();
+
+        // --- PANEL 1: Agregar y Listar ---
+        JPanel panel1 = new JPanel(new BorderLayout());
+        JPanel panelFormulario = new JPanel(new GridLayout(4, 2, 5, 5));
+        
+        panelFormulario.add(new JLabel("ID (Único):"));
+        spinnerId = new JSpinner(new SpinnerNumberModel(1, 1, 9999, 1));
+        panelFormulario.add(spinnerId);
+        
+        panelFormulario.add(new JLabel("Nombre:"));
+        txtNombre = new JTextField();
+        panelFormulario.add(txtNombre);
+        
+        panelFormulario.add(new JLabel("Precio:"));
+        txtPrecio = new JTextField();
+        panelFormulario.add(txtPrecio);
+        
+        JButton btnAgregar = new JButton("Agregar Producto");
+        btnAgregar.addActionListener(e -> agregarProductoAction());
+        panelFormulario.add(btnAgregar);
+
+        // Lista visual
+        listModel = new DefaultListModel<>();
+        jListProductos = new JList<>(listModel);
+        
+        panel1.add(panelFormulario, BorderLayout.NORTH);
+        panel1.add(new JScrollPane(jListProductos), BorderLayout.CENTER);
+
+        // --- PANEL 2: Ordenar y Buscar ---
+        JPanel panel2 = new JPanel(new FlowLayout());
+        
+        JButton btnOrdenarPrecio = new JButton("Ordenar Precio (Desc)");
+        btnOrdenarPrecio.addActionListener(e -> {
+            inventario.ordenarPorPrecioDescendente();
+            actualizarLista();
+            JOptionPane.showMessageDialog(this, "Ordenado por precio descendente.");
+        });
+
+        JButton btnOrdenarID = new JButton("Ordenar por ID");
+        btnOrdenarID.addActionListener(e -> {
+            inventario.ordenarPorId();
+            actualizarLista();
+            JOptionPane.showMessageDialog(this, "Ordenado por ID.");
+        });
+
+        JButton btnBuscarID = new JButton("Buscar ID (Binaria)");
+        btnBuscarID.addActionListener(e -> buscarPorIdAction());
+
+        JButton btnBuscarNombre = new JButton("Buscar Nombre");
+        btnBuscarNombre.addActionListener(e -> buscarPorNombreAction());
+
+        panel2.add(btnOrdenarPrecio);
+        panel2.add(btnOrdenarID);
+        panel2.add(btnBuscarID);
+        panel2.add(btnBuscarNombre);
+        
+        // Agregar Paneles al TabbedPane
+        tabbedPane.addTab("Gestión", panel1);
+        tabbedPane.addTab("Operaciones", panel2);
+
+        add(tabbedPane);
+    }
+
+    private void agregarProductoAction() {
+        try {
+            int id = (int) spinnerId.getValue();
+            String nombre = txtNombre.getText();
+            double precio = Double.parseDouble(txtPrecio.getText());
+
+            if (nombre.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El nombre no puede estar vacío.");
+                return;
+            }
+
+            boolean agregado = inventario.agregarProducto(id, nombre, precio);
+            if (agregado) {
+                JOptionPane.showMessageDialog(this, "Producto agregado correctamente.");
+                actualizarLista();
+                txtNombre.setText("");
+                txtPrecio.setText("");
+            } else {
+                JOptionPane.showMessageDialog(this, "Error: El ID ya existe.");
+            }
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Por favor ingrese un precio válido.");
+        }
+    }
+
+    private void buscarPorIdAction() {
+        String input = JOptionPane.showInputDialog("Ingrese ID a buscar:");
+        if (input != null) {
+            try {
+                int id = Integer.parseInt(input);
+                Producto p = inventario.busquedaBinariaId(id);
+                if (p != null) {
+                    JOptionPane.showMessageDialog(this, "ENCONTRADO:\n" + p);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Producto no encontrado.");
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "ID inválido.");
+            }
+        }
+    }
+
+    private void buscarPorNombreAction() {
+        String nombre = JOptionPane.showInputDialog("Ingrese nombre a buscar:");
+        if (nombre != null) {
+            Producto p = inventario.busquedaLinealNombre(nombre);
+            if (p != null) {
+                JOptionPane.showMessageDialog(this, "ENCONTRADO:\n" + p);
+            } else {
+                JOptionPane.showMessageDialog(this, "Producto no encontrado.");
+            }
+        }
+    }
+
+    private void actualizarLista() {
+        listModel.clear();
+        ArrayList<Producto> lista = inventario.getProductos();
+        for (Producto p : lista) {
+            listModel.addElement(p.toString());
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new Ventana().setVisible(true);
+        });
+    }
+}
